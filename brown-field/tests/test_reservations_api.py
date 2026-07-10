@@ -1,7 +1,7 @@
 """予約 API テスト（US-04, US-05, US-06, US-07）。重複防止が中心。"""
 from datetime import datetime, timedelta
 
-from tests.conftest import create_room
+from brown.tests.conftest import create_room
 
 
 def future(hours: int, minutes: int = 0) -> str:

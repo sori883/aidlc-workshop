@@ -1,5 +1,5 @@
 """会議室 API テスト（US-01, US-02, US-03）。"""
-from tests.conftest import create_room
+from brown.tests.conftest import create_room
 
 
 def test_create_room(client):

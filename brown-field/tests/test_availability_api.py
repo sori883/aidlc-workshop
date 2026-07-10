@@ -1,7 +1,7 @@
 """空き会議室検索 API テスト（US-08）。"""
 from datetime import datetime, timedelta
 
-from tests.conftest import create_room
+from brown.tests.conftest import create_room
 
 
 def future(hours: int, minutes: int = 0) -> str:
