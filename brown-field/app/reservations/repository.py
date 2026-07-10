@@ -48,3 +48,25 @@ class ReservationRepository:
             )
             .all()
         )
+
+    def list_by_series(self, series_id: str) -> list[Reservation]:
+        return (
+            self.db.query(Reservation)
+            .filter(Reservation.series_id == series_id)
+            .order_by(Reservation.start_time)
+            .all()
+        )
+
+    def list_future_active_by_series(
+        self, series_id: str, now: datetime
+    ) -> list[Reservation]:
+        """シリーズ内の、開始時刻が now より後（未来）の active 予約を返す。"""
+        return (
+            self.db.query(Reservation)
+            .filter(
+                Reservation.series_id == series_id,
+                Reservation.status == ReservationStatus.active.value,
+                Reservation.start_time > now,
+            )
+            .all()
+        )

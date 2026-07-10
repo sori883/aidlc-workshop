@@ -13,6 +13,7 @@ from app.common.errors import register_exception_handlers
 from app.db.database import create_all
 from app.reservations.router import router as reservations_router
 from app.rooms.router import router as rooms_router
+from app.series.router import router as series_router
 
 
 def create_app() -> FastAPI:
@@ -25,6 +26,8 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
 
     app.include_router(rooms_router)
+    # 定期予約は単発予約より前に登録し、/reservations/recurring を優先的に解決する。
+    app.include_router(series_router)
     app.include_router(reservations_router)
     app.include_router(availability_router)
 

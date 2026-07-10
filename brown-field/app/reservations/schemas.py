@@ -25,3 +25,5 @@ class ReservationOut(BaseModel):
     booker_email: str | None
     status: str
     created_at: datetime
+    # 定期予約シリーズの各回はシリーズID、単発予約は None。
+    series_id: str | None = None
