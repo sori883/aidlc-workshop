@@ -104,7 +104,7 @@ if [ -s "$INTERV" ] && [ -s "$TRANSCRIPT" ]; then
       echo; echo "--- セッション会話録 ---"; cat "$TRANSCRIPT"
     } | run_grade "$RESULTS/A_採点_D2_${key}.md"
   else
-    echo "D2: 仕様変更事象なし（評価はスキップ。判定は $D2_DETECT）"
+    echo "D2: 仕様変更事象なし（評価はスキップ。判定は ${D2_DETECT}）"
   fi
 else
   echo "skip: D2判定_${key}（介入一覧または会話録なし。先に ./02_measure_A.py を実行）"
