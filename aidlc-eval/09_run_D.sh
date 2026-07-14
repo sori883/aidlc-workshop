@@ -7,6 +7,7 @@ if [ $# -ge 1 ]; then export TARGET_FIELD="$1"; fi
 source "$(dirname "$0")/config.sh"
 
 [ -d "$WORK/cond-D-records" ] || { echo "ERROR: 先に ./07_setup.sh $TARGET_FIELD を実行してください" >&2; exit 1; }
+[ -s "$PROMPTS_TARGET/D_prompt.md" ] || { echo "ERROR: 質問セット $PROMPTS_TARGET/D_prompt.md がありません（config.shの注意を参照）" >&2; exit 1; }
 
 run_d() { # $1=条件ディレクトリ名 $2=出力サフィックス
   out="$RESULTS/D_回答_$2.md"
@@ -15,7 +16,7 @@ run_d() { # $1=条件ディレクトリ名 $2=出力サフィックス
   (
     cd "$WORK/$1"
     # shellcheck disable=SC2046
-    claude -p "$(cat "$PROMPTS/D_prompt.md")" \
+    claude -p "$(cat "$PROMPTS_TARGET/D_prompt.md")" \
       $(model_args "$ANSWER_MODEL") \
       --allowedTools "$ANSWER_TOOLS"
   ) > "$out" || { echo "ERROR: 条件$2 が失敗しました（$out を削除して再実行してください）" >&2; exit 1; }

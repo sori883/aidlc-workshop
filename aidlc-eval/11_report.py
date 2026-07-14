@@ -2,7 +2,10 @@
 """採点結果を集計し、results/<対象>/レポート.md を生成する。
 
 使い方: ./11_report.py [評価対象フォルダ名]   （既定: brown-field）
+
+問数・カテゴリ・ダミー問番号は shield/<対象>/meta.json から読む（質問セットごとに定義）。
 """
+import json
 import os
 import re
 import sys
@@ -12,17 +15,27 @@ from statistics import mean
 TARGET_FIELD = (
     sys.argv[1] if len(sys.argv) > 1 else os.environ.get("TARGET_FIELD", "brown-field")
 )
-RESULTS = Path(__file__).resolve().parent / "results" / TARGET_FIELD
+EVAL_ROOT = Path(__file__).resolve().parent
+RESULTS = EVAL_ROOT / "results" / TARGET_FIELD
+META_PATH = EVAL_ROOT / "shield" / TARGET_FIELD / "meta.json"
+
+try:
+    _meta = json.loads(META_PATH.read_text(encoding="utf-8"))
+except FileNotFoundError:
+    print(
+        f"ERROR: {META_PATH} がありません。質問セットの構成（問数・カテゴリ・ダミー問）を"
+        "定義してください（shield/brown-field/meta.json が雛形になります）。",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 C_CATEGORIES = {
-    "設計判断の理由": range(1, 7),    # Q1-6  (満点12)
-    "暗黙の仕様・制約": range(7, 15),  # Q7-14 (満点16)
-    "運用": range(15, 18),            # Q15-17 (満点6)
-    "ダミー(捏造検出)": range(18, 21), # Q18-20 (満点6)
+    name: range(lo, hi + 1) for name, (lo, hi) in _meta["C"]["categories"].items()
 }
-C_TOTAL_Q = 20
-D_TOTAL_Q = 17
-D_DUMMY = {16, 17}
+C_TOTAL_Q = _meta["C"]["total"]
+C_DUMMY = set(_meta["C"]["dummy"])
+D_TOTAL_Q = _meta["D"]["total"]
+D_DUMMY = set(_meta["D"]["dummy"])
 
 SCORE_RE = re.compile(r"^\s*Q(\d+)\s*[:：]?\s*([012])\b")
 
@@ -66,17 +79,17 @@ def report_c(lines: list[str]) -> None:
         return mean(sum(t.get(q, 0) for q in qs) for t in trials) if trials else float("nan")
 
     ta, tb = avg_total(per_cond["A"]), avg_total(per_cond["B"])
-    lines.append(f"| 総合 (40点満点) | {ta:.1f} | {tb:.1f} | {tb - ta:+.1f} |")
+    lines.append(f"| 総合 ({C_TOTAL_Q * 2}点満点) | {ta:.1f} | {tb:.1f} | {tb - ta:+.1f} |")
     for cat, qs in C_CATEGORIES.items():
         ca, cb = avg_cat(per_cond["A"], qs), avg_cat(per_cond["B"], qs)
         full = len(list(qs)) * 2
         lines.append(f"| {cat} ({full}点満点) | {ca:.1f} | {cb:.1f} | {cb - ca:+.1f} |")
 
     def fabrications(trials):
-        return sum(1 for t in trials for q in C_CATEGORIES["ダミー(捏造検出)"] if t.get(q) == 0)
+        return sum(1 for t in trials for q in C_DUMMY if t.get(q) == 0)
 
     fa, fb = fabrications(per_cond["A"]), fabrications(per_cond["B"])
-    lines.append(f"| ダミー質問の捏造数 (各{3 * max(n_a, 1)}問中) | {fa} | {fb} | {fb - fa:+d} |")
+    lines.append(f"| ダミー質問の捏造数 (各{len(C_DUMMY) * max(n_a, 1)}問中) | {fa} | {fb} | {fb - fa:+d} |")
     lines.append("")
 
     # 問別平均（どの質問で差が付いたか）
@@ -128,7 +141,10 @@ def report_d(lines: list[str]) -> None:
         lines.append("")
         if holes:
             for q in sorted(holes):
-                lines.append(f"- Q{q}（詳細は results/D_採点_records.md と shield/D_想定質問リスト.md を参照）")
+                lines.append(
+                    f"- Q{q}（詳細は results/{TARGET_FIELD}/D_採点_records.md と"
+                    f" shield/{TARGET_FIELD}/D_想定質問リスト.md を参照）"
+                )
         else:
             lines.append("- なし（想定質問はすべて記録から回答可能だった）")
         lines.append("")

@@ -5,21 +5,32 @@
 set -euo pipefail
 
 EVAL_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROMPTS="$EVAL_ROOT/prompts"    # 実験セッションに渡す質問文（模範解答なし）
-SHIELD="$EVAL_ROOT/shield"      # 模範解答・採点基準（実験セッションに見せない）
+PROMPTS="$EVAL_ROOT/prompts"    # 採点ヘッダなど対象非依存のプロンプト
+SHIELD="$EVAL_ROOT/shield"      # シールド置き場のルート（実験セッションに見せない）
 
 # 評価対象ワークスペース。各スクリプトの第1引数 > 環境変数 > 既定値(brown-field)
 TARGET_FIELD="${TARGET_FIELD:-brown-field}"
+
+# 対象ごとの質問セット。評価のコア（実行・採点スクリプト、prompts/grade_*.md）は
+# 対象非依存で、対象固有の質問・模範解答・meta.json はこの2ディレクトリに置く。
+PROMPTS_TARGET="$PROMPTS/$TARGET_FIELD"   # 実験セッションに渡す質問文（模範解答なし）
+SHIELD_TARGET="$SHIELD/$TARGET_FIELD"     # 模範解答・採点基準・meta.json
 
 # 出力・作業ディレクトリは対象ごとに分離する
 RESULTS="$EVAL_ROOT/results/$TARGET_FIELD"
 WORK="$EVAL_ROOT/work/$TARGET_FIELD"
 
-if [ "$TARGET_FIELD" != "brown-field" ] && [ "$TARGET_FIELD" != "green-field" ]; then
-  echo "注意: 対象 '$TARGET_FIELD' は未定義です。A領域はconfig.shへの対象定義が、" >&2
-  echo "      C・D領域は質問セット(prompts/・shield/)の作り直しが必要です。" >&2
-elif [ "$TARGET_FIELD" = "green-field" ]; then
-  echo "注意: C・D領域の質問セット(C_*/D_*)は brown-field 前提です（A領域はgreen-field対応済み）。" >&2
+# 質問セットの有無を確認（C・D領域を実行するには4ファイルすべて必要）
+cd_question_set_ok() {
+  [ -s "$PROMPTS_TARGET/C_prompt.md" ] && [ -s "$PROMPTS_TARGET/D_prompt.md" ] &&
+  [ -s "$SHIELD_TARGET/C_理解度クイズ.md" ] && [ -s "$SHIELD_TARGET/D_想定質問リスト.md" ] &&
+  [ -s "$SHIELD_TARGET/meta.json" ]
+}
+if ! cd_question_set_ok; then
+  echo "注意: 対象 '$TARGET_FIELD' のC・D質問セットがありません。C・D領域を実行するには" >&2
+  echo "      prompts/$TARGET_FIELD/{C_prompt.md,D_prompt.md} と" >&2
+  echo "      shield/$TARGET_FIELD/{C_理解度クイズ.md,D_想定質問リスト.md,meta.json} を作成してください" >&2
+  echo "      （brown-field のものが雛形になります。A領域は config.sh への対象定義のみで動きます）。" >&2
 fi
 
 # 対象ディレクトリの自動検出: 親ディレクトリ → このディレクトリ直下 の順。

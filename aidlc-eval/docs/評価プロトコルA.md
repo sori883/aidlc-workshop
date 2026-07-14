@@ -38,7 +38,7 @@ audit.md 等）にある。これらが検査の入力になる。
 | 承認後やり直し回数 | `A_介入一覧_*.md` から人間が判定（承認後の差し戻し発言を数える） | 機械判定は不安定なため人間集計 |
 | diff churn | 03が git で自動集計（コミット境界の総変更行数＝生成コードの規模） | 「完成後の手直し量」の意味でのchurnは将来の注入型D2で測る |
 | 影響範囲特定の正誤・変更起因の退行数 | **条件付き検査**: 04がまず介入一覧から仕様変更事象の有無をAI判定。なければ「該当なし」を記録、あれば影響範囲の HIT/MISS/EXTRA と正味退行数を採点（注入型は shield/future/ の正解を、自然発生は実変更を基準に） | 変更対応時間・変更後介入数は【仕様変更】マーカーがある場合のみ02が自動計測。統制された注入型実験は将来実施（資材保管済み） |
-| 曖昧要件検出率 | 04が第三者AIで採点: 元指示/Visionの曖昧点リスト（shield/A_D4_曖昧点_green-field.md・shield/A_D4_曖昧点_brown-field.md、各8個）につき 2=人間に確認 / 1=独断で文書化 / 0=未検討 | 根拠は requirement-verification-questions.md・requirements.md・会話録。仕込み型は将来実施 |
+| 曖昧要件検出率 | 04が第三者AIで採点: 元指示/Visionの曖昧点リスト（shield/<対象>/A_D4_曖昧点.md、各8個）につき 2=人間に確認 / 1=独断で文書化 / 0=未検討 | 根拠は requirement-verification-questions.md・requirements.md・会話録。仕込み型は将来実施 |
 | セキュリティ所見差分 | 03が aidlc-state.md のextension opt-in状態とPBTの痕跡を機械抽出（記述的検査） | 有効/無効の所見数差分は比較セッションが必要なため将来実施 |
 
 ## 実行手順（詳細は aidlc-eval/README.md）
@@ -64,8 +64,9 @@ cd aidlc-workshop/aidlc-eval
 
 ## シールド
 
-- `shield/` のA用曖昧点リストは採点専用（事後定義の正解）。将来の注入型D2/D4資材
-  （旧設計のお題・注入文・仕込みリスト）は `aidlc-eval/prompts/future/`・`shield/future/` に保管。
+- A用曖昧点リストは対象ごとに `shield/<対象>/A_D4_曖昧点.md` に置く（採点専用・事後定義の正解）。
+  将来の注入型D2/D4資材（旧設計のお題・注入文・仕込みリスト）は
+  `aidlc-eval/prompts/future/`・`shield/future/` に保管。
 - マスターは `aidlc-eval/shield/`（このハーネス内で自己完結）。
 
 ## コスト見積もり

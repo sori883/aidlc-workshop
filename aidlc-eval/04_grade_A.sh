@@ -25,7 +25,7 @@ show_head() { git -C "$REPO_ROOT" show "$head:${prefix}$1" 2>/dev/null; }
 REQ_CONTENT="$(show_head "aidlc-docs/inception/requirements/requirements.md" || true)"
 RVQ_CONTENT="$(show_head "aidlc-docs/inception/requirements/requirement-verification-questions.md" || true)"
 TRANSCRIPT="$RESULTS/A_会話録_${key}.md"
-D4_SHIELD="$SHIELD/A_D4_曖昧点_${TARGET_FIELD}.md"
+D4_SHIELD="$SHIELD_TARGET/A_D4_曖昧点.md"
 
 run_grade() { # $1=出力  stdinに採点入力
   if [ -s "$1" ]; then echo "skip: $1（既存）"; cat > /dev/null; return; fi

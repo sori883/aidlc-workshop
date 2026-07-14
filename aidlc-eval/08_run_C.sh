@@ -7,6 +7,7 @@ if [ $# -ge 1 ]; then export TARGET_FIELD="$1"; fi
 source "$(dirname "$0")/config.sh"
 
 [ -d "$WORK/cond-A" ] || { echo "ERROR: 先に ./07_setup.sh $TARGET_FIELD を実行してください" >&2; exit 1; }
+[ -s "$PROMPTS_TARGET/C_prompt.md" ] || { echo "ERROR: 質問セット $PROMPTS_TARGET/C_prompt.md がありません（config.shの注意を参照）" >&2; exit 1; }
 
 for cond in A B; do
   for t in $(seq 1 "$TRIALS"); do
@@ -16,7 +17,7 @@ for cond in A B; do
     (
       cd "$WORK/cond-$cond"
       # shellcheck disable=SC2046
-      claude -p "$(cat "$PROMPTS/C_prompt.md")" \
+      claude -p "$(cat "$PROMPTS_TARGET/C_prompt.md")" \
         $(model_args "$ANSWER_MODEL") \
         --allowedTools "$ANSWER_TOOLS"
     ) > "$out" || { echo "ERROR: 条件$cond 試行$t が失敗しました（$out を削除して再実行してください）" >&2; exit 1; }
