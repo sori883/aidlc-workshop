@@ -5,36 +5,45 @@
 set -euo pipefail
 
 EVAL_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROMPTS="$EVAL_ROOT/prompts"    # 採点ヘッダなど対象非依存のプロンプト
-SHIELD="$EVAL_ROOT/shield"      # シールド置き場のルート（実験セッションに見せない）
+PROMPTS="$EVAL_ROOT/prompts"    # 採点ヘッダなどシナリオ非依存のプロンプト
+SHIELD="$EVAL_ROOT/shield"      # A領域用シールド置き場（実験セッションに見せない）
 
-# 評価対象ワークスペース。各スクリプトの第1引数 > 環境変数 > 既定値(brown-field)
+# 評価対象。各スクリプトの第1引数 > 環境変数 > 既定値(brown-field)。
+# A領域では対象フォルダ名、C・D系ではシナリオ名（scenarios/ 配下のディレクトリ名）を指す。
 TARGET_FIELD="${TARGET_FIELD:-brown-field}"
 
-# 対象ごとの質問セット。評価のコア（実行・採点スクリプト、prompts/grade_*.md）は
-# 対象非依存で、対象固有の質問・模範解答・meta.json はこの2ディレクトリに置く。
-PROMPTS_TARGET="$PROMPTS/$TARGET_FIELD"   # 実験セッションに渡す質問文（模範解答なし）
-SHIELD_TARGET="$SHIELD/$TARGET_FIELD"     # 模範解答・採点基準・meta.json
+# A領域の対象別シールド（C・D系のシールドは scenarios/<シナリオ>/shield/ に移動済み）
+SHIELD_TARGET="$SHIELD/$TARGET_FIELD"
 
-# 出力・作業ディレクトリは対象ごとに分離する
-RESULTS="$EVAL_ROOT/results/$TARGET_FIELD"
-WORK="$EVAL_ROOT/work/$TARGET_FIELD"
+# C・D系のシナリオ定義。実験条件・質問セット・試行回数などはすべてここに定義する
+# （コアの 07/08/10/11 はシナリオ非依存。README「新しいシナリオの追加手順」参照）。
+SCENARIOS="$EVAL_ROOT/scenarios"
+SCENARIO_DIR="$SCENARIOS/$TARGET_FIELD"
 
-# 質問セットの有無を確認（C・D領域を実行するには4ファイルすべて必要）
-cd_question_set_ok() {
-  [ -s "$PROMPTS_TARGET/C_prompt.md" ] && [ -s "$PROMPTS_TARGET/D_prompt.md" ] &&
-  [ -s "$SHIELD_TARGET/C_理解度クイズ.md" ] && [ -s "$SHIELD_TARGET/D_想定質問リスト.md" ] &&
-  [ -s "$SHIELD_TARGET/meta.json" ]
+# 出力は対象ごとに分離する
+RESULTS_ROOT="${RESULTS_ROOT:-$EVAL_ROOT/results}"
+RESULTS="$RESULTS_ROOT/$TARGET_FIELD"
+
+# 実験条件のコピー置き場。既定でリポジトリの外に置く:
+# work/ が aidlc-workshop リポジトリ内部にあると、実験セッションが親の .git
+# （aidlc-docs と shield の履歴を平文で含む。reflog 等は Read だけで読める）に
+# 相対パスで到達でき、シールドが破れるため（sp1 の green-field 実行で実際に発生）。
+WORK_ROOT="${WORK_ROOT:-$HOME/.cache/aidlc-eval/work}"
+WORK="$WORK_ROOT/$TARGET_FIELD"
+
+# シナリオ定義の有無（C・D系スクリプトの冒頭で呼ぶ）
+scenario_required() {
+  if [ ! -s "$SCENARIO_DIR/scenario.json" ]; then
+    echo "ERROR: シナリオ '$TARGET_FIELD' の定義（$SCENARIO_DIR/scenario.json）がありません。" >&2
+    echo "  scenarios/ 配下にシナリオ定義ディレクトリを作成してください" >&2
+    echo "  （手順は README「新しいシナリオの追加手順」、雛形は scenarios/smoke-test/）。" >&2
+    exit 1
+  fi
 }
-if ! cd_question_set_ok; then
-  echo "注意: 対象 '$TARGET_FIELD' のC・D質問セットがありません。C・D領域を実行するには" >&2
-  echo "      prompts/$TARGET_FIELD/{C_prompt.md,D_prompt.md} と" >&2
-  echo "      shield/$TARGET_FIELD/{C_理解度クイズ.md,D_想定質問リスト.md,meta.json} を作成してください" >&2
-  echo "      （brown-field のものが雛形になります。A領域は config.sh への対象定義のみで動きます）。" >&2
-fi
 
-# 対象ディレクトリの自動検出: 親ディレクトリ → このディレクトリ直下 の順。
-# 明示指定する場合: FIELD_DIR=/path/to/brown-field ./07_setup.sh
+# 対象ディレクトリの自動検出（A領域用。C・D系の対象パスは scenario.json の workspace）:
+# 親ディレクトリ → このディレクトリ直下 の順。
+# 明示指定する場合: FIELD_DIR=/path/to/brown-field ./01_setup_A.sh
 if [ -z "${FIELD_DIR:-}" ]; then
   if [ -d "$EVAL_ROOT/../$TARGET_FIELD" ]; then
     FIELD_DIR="$(cd "$EVAL_ROOT/../$TARGET_FIELD" && pwd)"
@@ -49,11 +58,8 @@ fi
 ANSWER_MODEL="${ANSWER_MODEL:-}"      # 空 = デフォルトモデル
 GRADE_MODEL="${GRADE_MODEL:-opus}"
 
-TRIALS="${TRIALS:-3}"
-
-# 回答セッションに許可するツール（読み取り専用）
-# Q16でテスト実行まで許したい場合は "Read,Glob,Grep,Bash(pytest:*),Bash(pip:*),Bash(python:*)" などに変更
-ANSWER_TOOLS="${ANSWER_TOOLS:-Read,Glob,Grep}"
+# 回答セッションの許可ツールと試行回数は scenario.json に定義する。
+# ANSWER_TOOLS を環境変数で与えた場合のみ、全条件一律で上書きされる（08_run.sh 参照）。
 
 model_args() { # $1: モデル名（空なら何も出力しない）
   if [ -n "${1:-}" ]; then printf -- "--model %s" "$1"; fi

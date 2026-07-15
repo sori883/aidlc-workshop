@@ -1,0 +1,52 @@
+{
+  "_comment": "green-field（会議室予約システムの新規構築）のC・D評価シナリオ。スキーマは scenario_lib.py 冒頭のドキュメント参照。",
+  "workspace": "../../../green-field",
+  "answer_tools": "Read,Glob,Grep",
+  "conditions": {
+    "_comment": ".git を全条件で除去する理由: git履歴には aidlc-docs が含まれ `git show` 経由でシールドが破れるため。条件差を「ドキュメントの有無」だけにする。",
+    "A": { "remove": ["aidlc-docs", ".aidlc-rule-details", "CLAUDE.md", "docs", ".git"] },
+    "B": { "remove": [".git"] },
+    "D-records": { "include_only": ["aidlc-docs"] },
+    "D-none": { "like": "A" }
+  },
+  "report_title": "検証結果レポート（C・D領域）",
+  "tasks": {
+    "C": {
+      "prompt": "prompts/C_prompt.md",
+      "shield": "shield/C_理解度クイズ.md",
+      "grade_header": "grade_C_header.md",
+      "runs": {
+        "A": { "condition": "A", "trials": 3, "label": "条件A(コードのみ)", "short": "条件A" },
+        "B": { "condition": "B", "trials": 3, "label": "条件B(+aidlc-docs)", "short": "条件B" }
+      },
+      "report": {
+        "title": "C. 理解度クイズ",
+        "total": 20,
+        "categories": {
+          "設計判断の理由": [1, 6],
+          "暗黙の仕様・制約": [7, 14],
+          "運用": [15, 17],
+          "ダミー(捏造検出)": [18, 20]
+        },
+        "dummy": [18, 19, 20],
+        "diff": ["B", "A"]
+      }
+    },
+    "D": {
+      "prompt": "prompts/D_prompt.md",
+      "shield": "shield/D_想定質問リスト.md",
+      "grade_header": "grade_D_header.md",
+      "runs": {
+        "records": { "condition": "D-records", "trials": 1, "label": "記録あり(aidlc-docs)" },
+        "code": { "condition": "D-none", "trials": 1, "label": "記録なし(コードのみ)" }
+      },
+      "report": {
+        "title": "D. 説明責任テスト",
+        "total": 17,
+        "dummy": [16, 17],
+        "style": "coverage",
+        "holes_from": "records"
+      }
+    }
+  }
+}

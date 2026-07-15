@@ -1,0 +1,23 @@
+{
+  "_comment": "ハーネス動作確認用の最小ダミーシナリオ（質問3問・1条件・1試行）。新シナリオ追加手順（README）の実例でもある。実行コスト: 回答1セッション + 採点1セッション。",
+  "workspace": "../../../brown-field",
+  "answer_tools": "Read,Glob,Grep",
+  "conditions": {
+    "B": { "remove": [".git"] }
+  },
+  "tasks": {
+    "S": {
+      "prompt": "prompts/S_prompt.md",
+      "shield": "shield/S_質問.md",
+      "grade_header": "grade_C_header.md",
+      "runs": {
+        "B": { "condition": "B", "trials": 1, "label": "コード+aidlc-docs" }
+      },
+      "report": {
+        "title": "S. スモークテスト",
+        "total": 3,
+        "dummy": [3]
+      }
+    }
+  }
+}
